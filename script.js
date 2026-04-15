@@ -1060,6 +1060,7 @@ function addTaskToModal() {
     }
     newTask.specificDate = specificDate;
   }
+  // Note: 'none' means no recurrence (default) - no extra properties needed
   
   window.tempTasks.push(newTask);
   
@@ -1591,12 +1592,18 @@ function exportData() {
   const exportData = {
     version: '1.0',
     timestamp: new Date().toISOString(),
+    // Tracker data
     recurringTasks: recurringTasks,
     oneTasks: oneTasks,
     completions: completions,
+    // Gym data
     gymExercises: gymExercises,
     gymOneEx: gymOneEx,
-    gymLogs: gymLogs
+    gymLogs: gymLogs,
+    // Courses data
+    courses: courses,
+    // Happiness data
+    moodRatings: moodRatings
   };
   
   const dataStr = JSON.stringify(exportData, null, 2);
@@ -1605,14 +1612,14 @@ function exportData() {
   
   const link = document.createElement('a');
   const date = new Date().toISOString().split('T')[0];
-  link.download = `fitness-tracker-backup-${date}.json`;
+  link.download = `daily-tracker-backup-${date}.json`;
   link.href = url;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
   
-  showNotification('Data exported successfully!', 'success');
+  showNotification('All data exported successfully!', 'success');
 }
 
 function importData(file) {
@@ -1625,35 +1632,45 @@ function importData(file) {
       const importedData = JSON.parse(e.target.result);
       console.log('Imported data:', importedData);
       
-      // Validate the imported data structure
-      if (!importedData.recurringTasks || !importedData.oneTasks || 
-          !importedData.completions || !importedData.gymExercises || 
-          !importedData.gymOneEx || !importedData.gymLogs) {
-        throw new Error('Invalid backup file format');
-      }
+      // Show confirmation dialog with summary
+      const summary = [];
+      if (importedData.recurringTasks) summary.push(`${importedData.recurringTasks.length} recurring tasks`);
+      if (importedData.courses) summary.push(`${importedData.courses.length} courses`);
+      if (importedData.moodRatings) summary.push(`${Object.keys(importedData.moodRatings).length} mood ratings`);
+      if (importedData.gymExercises) summary.push(`${importedData.gymExercises.length} gym exercises`);
       
-      // Show confirmation dialog
-      const confirmMsg = `This will replace ALL your current data with the backup from ${new Date(importedData.timestamp).toLocaleString()}. Are you sure you want to continue?`;
+      const confirmMsg = `This will replace ALL your current data with backup from ${importedData.timestamp ? new Date(importedData.timestamp).toLocaleString() : 'unknown date'}\n\nIncludes: ${summary.join(', ')}\n\nAre you sure you want to continue?`;
       
       if (confirm(confirmMsg)) {
         // Apply imported data
-        recurringTasks = importedData.recurringTasks;
-        oneTasks = importedData.oneTasks;
-        completions = importedData.completions;
-        gymExercises = importedData.gymExercises;
-        gymOneEx = importedData.gymOneEx;
-        gymLogs = importedData.gymLogs;
+        if (importedData.recurringTasks) recurringTasks = importedData.recurringTasks;
+        if (importedData.oneTasks) oneTasks = importedData.oneTasks;
+        if (importedData.completions) completions = importedData.completions;
+        if (importedData.gymExercises) gymExercises = importedData.gymExercises;
+        if (importedData.gymOneEx) gymOneEx = importedData.gymOneEx;
+        if (importedData.gymLogs) gymLogs = importedData.gymLogs;
+        if (importedData.courses) courses = importedData.courses;
+        if (importedData.moodRatings) moodRatings = importedData.moodRatings;
         
         save();
         renderAll();
         if (activeTab === 'gym') renderGymAll();
+        if (activeTab === 'courses') renderCourses();
+        if (activeTab === 'happiness') renderHappiness();
         
-        showNotification('Data imported successfully!', 'success');
+        showNotification('All data imported successfully!', 'success');
+        
+        // Refresh the page to ensure everything is clean
+        setTimeout(() => {
+          if (confirm('Import complete. Refresh page to see all changes?')) {
+            location.reload();
+          }
+        }, 500);
       }
       
     } catch (error) {
       console.error('Import error:', error);
-      alert('Failed to import data: Invalid file format');
+      alert('Failed to import data: Invalid file format\n\n' + error.message);
     }
   };
   
@@ -1748,16 +1765,22 @@ document.getElementById('task-recurrence')?.addEventListener('change', (e) => {
   const weeklyDiv = document.getElementById('weekly-days-select');
   const specificDiv = document.getElementById('specific-date-select');
   
+  // Hide both first
+  weeklyDiv.style.display = 'none';
+  specificDiv.style.display = 'none';
+  
   if (e.target.value === 'weekly') {
     weeklyDiv.style.display = 'flex';
-    specificDiv.style.display = 'none';
   } else if (e.target.value === 'once') {
-    weeklyDiv.style.display = 'none';
     specificDiv.style.display = 'block';
-  } else {
-    weeklyDiv.style.display = 'none';
-    specificDiv.style.display = 'none';
+    // Set default date to today
+    const dateInput = document.getElementById('task-specific-date');
+    if (dateInput && !dateInput.value) {
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      dateInput.value = todayStr;
+    }
   }
+  // 'none' - do nothing, both stay hidden
 });
   if (recurringTasks.length === 0 || gymExercises.length === 0) {
     if (recurringTasks.length === 0) {
