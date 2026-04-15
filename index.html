@@ -19,7 +19,6 @@
       <h1 class="app-title">daily tracker</h1>
       <div class="streak-pill" id="streak-pill"></div>
     </div>
-    <!-- ONLY ONE TAB BAR - KEEP THIS ONE -->
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="tracker">tracker</button>
       <button class="tab-btn" data-tab="gym">gym</button>
@@ -27,6 +26,7 @@
       <button class="tab-btn" data-tab="happiness">happiness</button>
       <button class="tab-btn" data-tab="progress">progress</button>
     </div>
+  </header>
 
   <!-- TRACKER TAB -->
   <div class="tab-content" id="tab-tracker">
@@ -57,73 +57,23 @@
       </div>
       <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
       <div class="tasks" id="task-list"></div>
-      <!-- TRACKER TAB -->
-<div class="tab-content" id="tab-tracker">
-  <div class="nav">
-    <button class="nav-btn" id="prev-btn">&#8249;</button>
-    <span class="nav-title" id="month-lbl"></span>
-    <button class="nav-btn" id="next-btn">&#8250;</button>
-  </div>
-  <div class="cal-grid" id="cal-grid">
-    <div class="day-hdr">Su</div>
-    <div class="day-hdr">Mo</div>
-    <div class="day-hdr">Tu</div>
-    <div class="day-hdr">We</div>
-    <div class="day-hdr">Th</div>
-    <div class="day-hdr">Fr</div>
-    <div class="day-hdr">Sa</div>
-  </div>
-  <div class="panel">
-    <div class="panel-header">
-      <div>
-        <div class="sel-date" id="sel-date-lbl"></div>
-        <div class="sel-sub" id="sel-sub"></div>
-      </div>
-      <div class="pct-block">
-        <div class="pct-num" id="pct-num">—</div>
-        <div class="pct-label">complete</div>
-      </div>
-    </div>
-    <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
-    <div class="tasks" id="task-list"></div>
-    
-    <!-- NOTES SECTION - ADD THIS RIGHT HERE -->
-    <div class="notes-section">
-      <div class="notes-header">
-        <span class="notes-title">📝 Daily Notes</span>
-        <button id="edit-notes-btn" class="edit-notes-btn">Edit</button>
-      </div>
-      <div id="notes-display" class="notes-display">
-        <div class="notes-placeholder">No notes for this day. Click Edit to add notes.</div>
-      </div>
-      <textarea id="notes-editor" class="notes-editor hidden" placeholder="Write your notes here..."></textarea>
-      <div class="notes-actions hidden" id="notes-actions">
-        <button id="save-notes-btn" class="save-notes-btn">Save</button>
-        <button id="cancel-notes-btn" class="cancel-notes-btn">Cancel</button>
-      </div>
-    </div>
-    
-    <div class="add-section">
-      <div class="add-row">
-        <input id="new-task-input" placeholder="Add a task..." autocomplete="off" />
-        <button class="add-btn" id="add-task-btn">Add</button>
-      </div>
-      <div class="rec-row">
-        <span class="rec-lbl">Repeat on:</span>
-        <div class="day-toggles">
-          <button class="day-toggle" data-d="0">Su</button>
-          <button class="day-toggle" data-d="1">Mo</button>
-          <button class="day-toggle" data-d="2">Tu</button>
-          <button class="day-toggle" data-d="3">We</button>
-          <button class="day-toggle" data-d="4">Th</button>
-          <button class="day-toggle" data-d="5">Fr</button>
-          <button class="day-toggle" data-d="6">Sa</button>
+
+      <!-- NOTES SECTION -->
+      <div class="notes-section">
+        <div class="notes-header">
+          <span class="notes-title">📝 Daily Notes</span>
+          <button id="edit-notes-btn" class="edit-notes-btn">Edit</button>
+        </div>
+        <div id="notes-display" class="notes-display">
+          <div class="notes-placeholder">No notes for this day. Click Edit to add notes.</div>
+        </div>
+        <textarea id="notes-editor" class="notes-editor hidden" placeholder="Write your notes here..."></textarea>
+        <div class="notes-actions hidden" id="notes-actions">
+          <button id="save-notes-btn" class="save-notes-btn">Save</button>
+          <button id="cancel-notes-btn" class="cancel-notes-btn">Cancel</button>
         </div>
       </div>
-      <div class="rec-hint" id="rec-hint">No repeat days selected — task will be added to this day only</div>
-    </div>
-  </div>
-</div>
+
       <div class="add-section">
         <div class="add-row">
           <input id="new-task-input" placeholder="Add a task..." autocomplete="off" />
@@ -219,10 +169,85 @@
     </div>
   </div>
 
+  <!-- COURSES TAB -->
+  <div class="tab-content hidden" id="tab-courses">
+    <div class="courses-container">
+      <div class="courses-section">
+        <div class="section-header">
+          <h3>📚 My Courses</h3>
+          <button id="add-course-main-btn" class="add-course-btn">+ New Course</button>
+        </div>
+        <div id="courses-list" class="courses-list">
+          <div class="empty-state">No courses yet — click "+ New Course" to add one</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HAPPINESS TAB -->
+  <div class="tab-content hidden" id="tab-happiness">
+    <div class="happiness-container">
+      <div class="happiness-section">
+        <div class="section-header">
+          <h3>📅 Select Date</h3>
+        </div>
+        <div class="date-selector-row">
+          <input type="date" id="happiness-date-selector" class="date-input" />
+          <button id="select-happiness-date" class="add-btn">View/Edit</button>
+        </div>
+      </div>
+      <div class="happiness-section">
+        <div class="section-header">
+          <h3>😊 How are you feeling?</h3>
+          <span id="selected-date-label" class="selected-date-label"></span>
+        </div>
+        <div class="rating-scale" id="rating-scale">
+          <button class="rating-btn" data-rating="1">😢 1</button>
+          <button class="rating-btn" data-rating="2">😕 2</button>
+          <button class="rating-btn" data-rating="3">😐 3</button>
+          <button class="rating-btn" data-rating="4">🙂 4</button>
+          <button class="rating-btn" data-rating="5">😊 5</button>
+          <button class="rating-btn" data-rating="6">😄 6</button>
+          <button class="rating-btn" data-rating="7">😁 7</button>
+          <button class="rating-btn" data-rating="8">🎉 8</button>
+          <button class="rating-btn" data-rating="9">🌟 9</button>
+          <button class="rating-btn" data-rating="10">💯 10</button>
+        </div>
+        <div id="current-rating-display" class="current-rating-display"></div>
+      </div>
+      <div class="happiness-section">
+        <div class="section-header">
+          <h3>📊 Mood History</h3>
+        </div>
+        <div id="rating-history" class="rating-history">
+          <div class="empty-state">No ratings yet — rate your days!</div>
+        </div>
+      </div>
+      <div class="happiness-section">
+        <div class="section-header">
+          <h3>📈 Mood Stats</h3>
+        </div>
+        <div class="mood-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="avg-rating">-</div>
+            <div class="stat-label">Average mood</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="best-day">-</div>
+            <div class="stat-label">Best day</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="total-ratings">0</div>
+            <div class="stat-label">Days rated</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- PROGRESS TAB -->
   <div class="tab-content hidden" id="tab-progress">
     <div class="progress-container">
-      <!-- PR Section -->
       <div class="progress-section">
         <div class="section-header">
           <h3>🏆 Personal Records</h3>
@@ -232,8 +257,6 @@
           <div class="empty-state">No PRs yet — complete some sets to set records!</div>
         </div>
       </div>
-
-      <!-- Volume Stats Section -->
       <div class="progress-section">
         <div class="section-header">
           <h3>📊 Volume Stats (Last 30 Days)</h3>
@@ -253,8 +276,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Exercise History Section -->
       <div class="progress-section">
         <div class="section-header">
           <h3>📋 Exercise History</h3>
@@ -268,135 +289,52 @@
       </div>
     </div>
   </div>
-<!-- COURSES TAB -->
-<div class="tab-content hidden" id="tab-courses">
-  <div class="courses-container">
-    <!-- Add Course Section -->
-    <div class="courses-section">
-      <div class="section-header">
-        <h3>📚 My Courses</h3>
-        <button id="add-course-main-btn" class="add-course-btn">+ New Course</button>
+
+  <!-- Add Course Modal -->
+  <div id="course-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="course-modal-title">Add New Course</h3>
+        <button class="modal-close" id="close-course-modal">&times;</button>
       </div>
-      <div id="courses-list" class="courses-list">
-        <div class="empty-state">No courses yet — click "+ New Course" to add one</div>
+      <div class="course-modal-body">
+        <input type="text" id="modal-course-name" placeholder="Course name" class="modal-input" />
+        <div class="course-tasks-section">
+          <h4>Tasks for this course</h4>
+          <div id="modal-tasks-list" class="modal-tasks-list"></div>
+          <div class="add-task-row">
+            <input type="text" id="new-task-name" placeholder="Task name" class="modal-input-small" />
+            <div class="recurrence-select">
+              <span>Repeat:</span>
+              <select id="task-recurrence" class="recurrence-select-dropdown">
+                <option value="none">Once (specific date)</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly (select days)</option>
+              </select>
+            </div>
+            <div id="weekly-days-select" class="weekly-days" style="display: none;">
+              <label><input type="checkbox" value="0"> Su</label>
+              <label><input type="checkbox" value="1"> Mo</label>
+              <label><input type="checkbox" value="2"> Tu</label>
+              <label><input type="checkbox" value="3"> We</label>
+              <label><input type="checkbox" value="4"> Th</label>
+              <label><input type="checkbox" value="5"> Fr</label>
+              <label><input type="checkbox" value="6"> Sa</label>
+            </div>
+            <div id="specific-date-select" class="specific-date" style="display: none;">
+              <label>Select date:</label>
+              <input type="date" id="task-specific-date" />
+            </div>
+            <button id="add-task-to-course" class="add-small-btn">+ Add Task</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button class="cancel-btn" id="cancel-course-modal">Cancel</button>
+        <button class="confirm-btn" id="save-course-btn">Save Course</button>
       </div>
     </div>
   </div>
-</div>
-
-<!-- Add Course Modal (hidden by default) -->
-<div id="course-modal" class="modal" style="display: none;">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="course-modal-title">Add New Course</h3>
-      <button class="modal-close" id="close-course-modal">&times;</button>
-    </div>
-    <div class="course-modal-body">
-      <input type="text" id="modal-course-name" placeholder="Course name" class="modal-input" />
-      <div class="course-tasks-section">
-        <h4>Tasks for this course</h4>
-        <div id="modal-tasks-list" class="modal-tasks-list"></div>
-        <div class="add-task-row">
-          <input type="text" id="new-task-name" placeholder="Task name (e.g., 'Homework', 'Study')" class="modal-input-small" />
-          <div class="recurrence-select">
-            <span>Repeat:</span>
-            <select id="task-recurrence" class="recurrence-select-dropdown">
-              <option value="none">Once (specific date)</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly (select days)</option>
-            </select>
-          </div>
-          <div id="weekly-days-select" class="weekly-days" style="display: none;">
-            <label><input type="checkbox" value="0"> Su</label>
-            <label><input type="checkbox" value="1"> Mo</label>
-            <label><input type="checkbox" value="2"> Tu</label>
-            <label><input type="checkbox" value="3"> We</label>
-            <label><input type="checkbox" value="4"> Th</label>
-            <label><input type="checkbox" value="5"> Fr</label>
-            <label><input type="checkbox" value="6"> Sa</label>
-          </div>
-          <div id="specific-date-select" class="specific-date" style="display: none;">
-            <label style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-muted);">Select date:</label>
-            <input type="date" id="task-specific-date" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border-med); border-radius: 6px; color: var(--text);" />
-          </div>
-          <button id="add-task-to-course" class="add-small-btn">+ Add Task</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-buttons">
-      <button class="cancel-btn" id="cancel-course-modal">Cancel</button>
-      <button class="confirm-btn" id="save-course-btn">Save Course</button>
-    </div>
-  </div>
-</div>
-
-<!-- HAPPINESS TAB -->
-<div class="tab-content hidden" id="tab-happiness">
-  <div class="happiness-container">
-    <!-- Date Selector -->
-    <div class="happiness-section">
-      <div class="section-header">
-        <h3>📅 Select Date</h3>
-      </div>
-      <div class="date-selector-row">
-        <input type="date" id="happiness-date-selector" class="date-input" />
-        <button id="select-happiness-date" class="add-btn">View/Edit</button>
-      </div>
-    </div>
-
-    <!-- Rating for Selected Date -->
-    <div class="happiness-section">
-      <div class="section-header">
-        <h3>😊 How are you feeling?</h3>
-        <span id="selected-date-label" class="selected-date-label"></span>
-      </div>
-      <div class="rating-scale" id="rating-scale">
-        <button class="rating-btn" data-rating="1">😢 1</button>
-        <button class="rating-btn" data-rating="2">😕 2</button>
-        <button class="rating-btn" data-rating="3">😐 3</button>
-        <button class="rating-btn" data-rating="4">🙂 4</button>
-        <button class="rating-btn" data-rating="5">😊 5</button>
-        <button class="rating-btn" data-rating="6">😄 6</button>
-        <button class="rating-btn" data-rating="7">😁 7</button>
-        <button class="rating-btn" data-rating="8">🎉 8</button>
-        <button class="rating-btn" data-rating="9">🌟 9</button>
-        <button class="rating-btn" data-rating="10">💯 10</button>
-      </div>
-      <div id="current-rating-display" class="current-rating-display"></div>
-    </div>
-
-    <!-- Rating History -->
-    <div class="happiness-section">
-      <div class="section-header">
-        <h3>📊 Mood History</h3>
-      </div>
-      <div id="rating-history" class="rating-history">
-        <div class="empty-state">No ratings yet — rate your days!</div>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="happiness-section">
-      <div class="section-header">
-        <h3>📈 Mood Stats</h3>
-      </div>
-      <div class="mood-stats">
-        <div class="stat-card">
-          <div class="stat-value" id="avg-rating">-</div>
-          <div class="stat-label">Average mood</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="best-day">-</div>
-          <div class="stat-label">Best day</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="total-ratings">0</div>
-          <div class="stat-label">Days rated</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
   <div class="backup-controls">
     <button id="export-data-btn" class="backup-btn" type="button">📤 Export Data</button>
