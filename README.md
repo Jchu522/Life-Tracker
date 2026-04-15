@@ -4,8 +4,8 @@ A powerful all-in-one Progressive Web App for tracking daily tasks, workouts, co
 
 ## Features
 <img width="404" height="676" alt="Screenshot 2026-04-15 at 1 42 42 PM" src="https://github.com/user-attachments/assets/8b2d9e2b-3abe-49f8-9d04-9b63ef711ceb" />
-<img width="403" height="558" alt="Screenshot 2026-04-15 at 1 43 23 PM" src="https://github.com/user-attachments/assets/6baa752d-45d4-4281-9746-48e6de6ef267" />
-<img width="413" height="706" alt="Screenshot 2026-04-15 at 1 43 00 PM" src="https://github.com/user-attachments/assets/0c8fe933-4ec8-47c5-9956-9c9163550b57" />
+<img width="403" height="676" alt="Screenshot 2026-04-15 at 1 43 23 PM" src="https://github.com/user-attachments/assets/6baa752d-45d4-4281-9746-48e6de6ef267" />
+<img width="413" height="676" alt="Screenshot 2026-04-15 at 1 43 00 PM" src="https://github.com/user-attachments/assets/0c8fe933-4ec8-47c5-9956-9c9163550b57" />
 
 ### 📋 Task Tracker
 - **Recurring Tasks** - Set tasks to repeat on specific days of the week
