@@ -809,6 +809,8 @@ let courseTasks = {}; // key -> [{ id, courseId, label, done }]
 
 // ── HAPPINESS STATE ───────────────────────────────────
 let moodRatings = {}; // key -> rating (1-10)
+let selectedHappinessDate = todayKey; // Currently selected date in happiness tab
+
 
 // Update load function to include new data
 const originalLoad = load;
@@ -956,12 +958,15 @@ function renderTodayCourseTasks() {
   });
 }
 
+
 // ── HAPPINESS FUNCTIONS ───────────────────────────────
-function setMoodRating(rating) {
-  moodRatings[todayKey] = parseInt(rating);
+function setMoodRating(rating, dateKey = null) {
+  const targetDate = dateKey || selectedHappinessDate;
+  moodRatings[targetDate] = parseInt(rating);
   save();
   renderHappiness();
-  renderAll(); // Update streak pill if needed
+  renderAll(); // Update calendar to show the mood
+  showNotification(`Mood saved for ${formatDate(targetDate)}: ${getMoodEmoji(rating)} ${rating}/10`, 'success');
 }
 
 function getMoodEmoji(rating) {
@@ -973,30 +978,41 @@ function getMoodEmoji(rating) {
 }
 
 function renderHappiness() {
-  const todayRating = moodRatings[todayKey];
-  const todayRatingDiv = document.getElementById('today-rating');
-  const ratingScale = document.getElementById('rating-scale');
+  const currentRating = moodRatings[selectedHappinessDate];
+  const currentDisplay = document.getElementById('current-rating-display');
+  const selectedLabel = document.getElementById('selected-date-label');
+  const dateSelector = document.getElementById('happiness-date-selector');
   
-  if (todayRatingDiv) {
-    if (todayRating) {
-      todayRatingDiv.innerHTML = `Today's mood: ${getMoodEmoji(todayRating)} ${todayRating}/10`;
+  // Update date selector value
+  if (dateSelector && selectedHappinessDate) {
+    const [year, month, day] = selectedHappinessDate.split('-');
+    dateSelector.value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  
+  // Update selected date label
+  if (selectedLabel) {
+    selectedLabel.textContent = formatDate(selectedHappinessDate);
+  }
+  
+  // Update current rating display
+  if (currentDisplay) {
+    if (currentRating) {
+      currentDisplay.innerHTML = `Current rating: ${getMoodEmoji(currentRating)} ${currentRating}/10`;
     } else {
-      todayRatingDiv.innerHTML = 'No rating yet for today — select one above!';
+      currentDisplay.innerHTML = 'No rating yet for this day — select one above!';
     }
   }
   
-  // Highlight active rating
-  if (ratingScale) {
-    document.querySelectorAll('.rating-btn').forEach(btn => {
-      if (btn.dataset.rating == todayRating) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-  }
+  // Highlight active rating button
+  document.querySelectorAll('.rating-btn').forEach(btn => {
+    if (btn.dataset.rating == currentRating) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
   
-  // Render history
+  // Render history (all ratings, sorted by date)
   const historyContainer = document.getElementById('rating-history');
   if (historyContainer) {
     const sorted = Object.entries(moodRatings).sort((a, b) => keyToDate(b[0]) - keyToDate(a[0]));
@@ -1005,39 +1021,129 @@ function renderHappiness() {
       historyContainer.innerHTML = '<div class="empty-state">No ratings yet — rate your days!</div>';
     } else {
       historyContainer.innerHTML = sorted.map(([key, rating]) => `
-        <div class="history-item">
+        <div class="history-item" data-date="${key}">
           <span class="history-date">${formatDate(key)}</span>
           <span class="history-rating">${getMoodEmoji(rating)} ${rating}/10</span>
+          <button class="edit-rating-btn" data-date="${key}">✎</button>
         </div>
       `).join('');
     }
+    
+    // Add click handlers for edit buttons
+    document.querySelectorAll('.edit-rating-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dateKey = btn.dataset.date;
+        selectedHappinessDate = dateKey;
+        renderHappiness();
+        // Scroll to top
+        document.querySelector('.happiness-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
   }
   
   // Calculate stats
   const ratings = Object.values(moodRatings);
-  if (ratings.length > 0) {
-    const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-    document.getElementById('avg-rating').textContent = avg.toFixed(1);
-    document.getElementById('total-ratings').textContent = ratings.length;
-    
-    // Find best day
-    let bestRating = 0;
-    let bestDay = '';
-    Object.entries(moodRatings).forEach(([key, rating]) => {
-      if (rating > bestRating) {
-        bestRating = rating;
-        bestDay = key;
+  const avgRatingEl = document.getElementById('avg-rating');
+  const totalRatingsEl = document.getElementById('total-ratings');
+  const bestDayEl = document.getElementById('best-day');
+  
+  if (avgRatingEl && totalRatingsEl && bestDayEl) {
+    if (ratings.length > 0) {
+      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+      avgRatingEl.textContent = avg.toFixed(1);
+      totalRatingsEl.textContent = ratings.length;
+      
+      // Find best day
+      let bestRating = 0;
+      let bestDay = '';
+      Object.entries(moodRatings).forEach(([key, rating]) => {
+        if (rating > bestRating) {
+          bestRating = rating;
+          bestDay = key;
+        }
+      });
+      if (bestDay) {
+        bestDayEl.innerHTML = `${getMoodEmoji(bestRating)} ${formatDate(bestDay)}`;
       }
-    });
-    if (bestDay) {
-      document.getElementById('best-day').innerHTML = `${getMoodEmoji(bestRating)} ${formatDate(bestDay)}`;
+    } else {
+      avgRatingEl.textContent = '-';
+      totalRatingsEl.textContent = '0';
+      bestDayEl.textContent = '-';
     }
-  } else {
-    document.getElementById('avg-rating').textContent = '-';
-    document.getElementById('total-ratings').textContent = '0';
-    document.getElementById('best-day').textContent = '-';
   }
 }
+
+// Initialize happiness buttons and date picker
+function initHappinessTab() {
+  // Set up rating buttons
+  const ratingBtns = document.querySelectorAll('.rating-btn');
+  ratingBtns.forEach(btn => {
+    btn.removeEventListener('click', () => {});
+    btn.addEventListener('click', () => {
+      const rating = parseInt(btn.dataset.rating);
+      setMoodRating(rating);
+    });
+  });
+  
+  // Set up date selector
+  const dateSelector = document.getElementById('happiness-date-selector');
+  const selectBtn = document.getElementById('select-happiness-date');
+  
+  if (dateSelector) {
+    // Set default to today
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    dateSelector.value = todayStr;
+    
+    dateSelector.addEventListener('change', () => {
+      if (dateSelector.value) {
+        const [year, month, day] = dateSelector.value.split('-');
+        selectedHappinessDate = `${parseInt(year)}-${parseInt(month)}-${parseInt(day)}`;
+        renderHappiness();
+      }
+    });
+  }
+  
+  if (selectBtn) {
+    selectBtn.addEventListener('click', () => {
+      if (dateSelector && dateSelector.value) {
+        const [year, month, day] = dateSelector.value.split('-');
+        selectedHappinessDate = `${parseInt(year)}-${parseInt(month)}-${parseInt(day)}`;
+        renderHappiness();
+      }
+    });
+  }
+}
+
+// Update the calendar to show mood emojis
+const originalRenderCalendar = renderCalendar;
+renderCalendar = function() {
+  originalRenderCalendar();
+  
+  // Add mood indicators to calendar cells
+  const grid = document.getElementById('cal-grid');
+  const cells = grid.querySelectorAll('.day-cell:not(.empty)');
+  
+  cells.forEach(cell => {
+    const dayNum = cell.querySelector('.day-num')?.textContent;
+    if (dayNum) {
+      const key = dateKey(new Date(viewYear, viewMonth, parseInt(dayNum)));
+      const mood = moodRatings[key];
+      
+      if (mood) {
+        // Remove existing mood indicator if any
+        const existingMood = cell.querySelector('.day-mood');
+        if (existingMood) existingMood.remove();
+        
+        // Add mood emoji
+        const moodDiv = document.createElement('div');
+        moodDiv.className = 'day-mood';
+        moodDiv.innerHTML = `<span class="day-mood-emoji">${getMoodEmoji(mood)}</span>`;
+        cell.appendChild(moodDiv);
+      }
+    }
+  });
+};
 
 // Add course tasks to tracker display
 const originalGetTasksForKey = getTasksForKey;
@@ -1095,7 +1201,6 @@ deleteTask = function(id, isRecurring) {
 };
 
 // Update tab switching
-const originalTabSwitchSetup = document.querySelectorAll('.tab-btn');
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     activeTab = btn.dataset.tab;
@@ -1103,32 +1208,24 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
     document.getElementById('tab-' + activeTab).classList.remove('hidden');
-    if (activeTab === 'gym') renderGymAll();
-    else if (activeTab === 'progress') {
+    
+    if (activeTab === 'gym') {
+      renderGymAll();
+    } else if (activeTab === 'progress') {
       renderPRs();
       calculateVolumeStats();
       populateExerciseSelect();
-    }
-    else if (activeTab === 'courses') {
+    } else if (activeTab === 'courses') {
       renderCourses();
       renderTodayCourseTasks();
+    } else if (activeTab === 'happiness') {
+      initHappinessTab(); 
+    } else {
+      renderAll();
     }
-    else if (activeTab === 'happiness') {
-      renderHappiness();
-      initHappinessButtons(); 
-    }
-    else renderAll();
   });
 });
 
-// Add event listeners for rating buttons
-function initHappinessButtons() {
-  document.querySelectorAll('.rating-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      setMoodRating(btn.dataset.rating);
-    });
-  });
-}
 
 // Initialize courses button
 document.getElementById('add-course-btn')?.addEventListener('click', addCourse);
@@ -1136,62 +1233,6 @@ document.getElementById('new-course-input')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') addCourse();
 });
 
-// ── SIMPLE HAPPINESS INITIALIZATION ──
-(function initHappiness() {
-  // Wait for DOM to be ready
-  setTimeout(function() {
-    console.log('Initializing Happiness tab...');
-    
-    // Function to attach rating button events
-    function attachRatingEvents() {
-      const ratingBtns = document.querySelectorAll('.rating-btn');
-      console.log('Found rating buttons:', ratingBtns.length);
-      
-      ratingBtns.forEach(btn => {
-        // Remove any existing listeners by cloning
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        
-        newBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          const rating = parseInt(this.dataset.rating);
-          console.log('Rating selected:', rating);
-          
-          // Save rating
-          moodRatings[todayKey] = rating;
-          save();
-          
-          // Update UI
-          renderHappiness();
-          
-          // Update active state
-          document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-          
-          alert(`Mood saved: ${getMoodEmoji(rating)} ${rating}/10`);
-        });
-      });
-    }
-    
-    // Initial attachment
-    attachRatingEvents();
-    
-    // Re-attach when tab is switched to happiness
-    const originalSwitch = document.querySelectorAll('.tab-btn');
-    originalSwitch.forEach(btn => {
-      if (btn.dataset.tab === 'happiness') {
-        btn.addEventListener('click', function() {
-          setTimeout(attachRatingEvents, 50);
-        });
-      }
-    });
-    
-    // Initial render if happiness tab is visible
-    if (document.getElementById('tab-happiness') && !document.getElementById('tab-happiness').classList.contains('hidden')) {
-      renderHappiness();
-    }
-  }, 200);
-})();
 // ── DATA EXPORT/IMPORT ─────────────────────────────────
 
 function exportData() {
@@ -1364,11 +1405,13 @@ function initializeApp() {
       ];
     }
   }
-
+  // Set initial selected happiness date
+  selectedHappinessDate = todayKey;
   renderAll();
   updateRecHint();
   updateGymRecHint();
   initBackupFeatures();
+  
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')

@@ -231,9 +231,22 @@
 <!-- HAPPINESS TAB -->
 <div class="tab-content hidden" id="tab-happiness">
   <div class="happiness-container">
+    <!-- Date Selector -->
     <div class="happiness-section">
       <div class="section-header">
-        <h3>😊 How are you feeling today?</h3>
+        <h3>📅 Select Date</h3>
+      </div>
+      <div class="date-selector-row">
+        <input type="date" id="happiness-date-selector" class="date-input" />
+        <button id="select-happiness-date" class="add-btn">View/Edit</button>
+      </div>
+    </div>
+
+    <!-- Rating for Selected Date -->
+    <div class="happiness-section">
+      <div class="section-header">
+        <h3>😊 How are you feeling?</h3>
+        <span id="selected-date-label" class="selected-date-label"></span>
       </div>
       <div class="rating-scale" id="rating-scale">
         <button class="rating-btn" data-rating="1">😢 1</button>
@@ -247,8 +260,10 @@
         <button class="rating-btn" data-rating="9">🌟 9</button>
         <button class="rating-btn" data-rating="10">💯 10</button>
       </div>
-      <div id="today-rating" class="today-rating"></div>
+      <div id="current-rating-display" class="current-rating-display"></div>
     </div>
+
+    <!-- Rating History -->
     <div class="happiness-section">
       <div class="section-header">
         <h3>📊 Mood History</h3>
@@ -257,6 +272,8 @@
         <div class="empty-state">No ratings yet — rate your days!</div>
       </div>
     </div>
+
+    <!-- Stats -->
     <div class="happiness-section">
       <div class="section-header">
         <h3>📈 Mood Stats</h3>
