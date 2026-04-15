@@ -69,25 +69,6 @@ function save() {
   } catch(e) { console.warn('save error', e); }
 }
 
-// ── TAB SWITCHING ──────────────────────────────────────
-let activeTab = 'tracker';
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    activeTab = btn.dataset.tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-    document.getElementById('tab-' + activeTab).classList.remove('hidden');
-    if (activeTab === 'gym') renderGymAll();
-    else if (activeTab === 'progress') {
-      renderPRs();
-      calculateVolumeStats();
-      populateExerciseSelect();
-    }
-    
-    else renderAll();
-  });
-});
 
 // ══════════════════════════════════════════════════════
 // TRACKER (original logic, unchanged)
@@ -101,8 +82,30 @@ function getTasksForKey(key) {
 function getPct(key) {
   const tasks = getTasksForKey(key);
   if (!tasks.length) return null;
-  const done = tasks.filter(t => (completions[key] || {})[t.id]).length;
-  return Math.round(done / tasks.length * 100);
+  
+  let done = 0;
+  tasks.forEach(t => {
+    if (t.isCourseTask && courses && courses.length > 0) {
+      // Check course task completion
+      for (const course of courses) {
+        for (const task of course.tasks) {
+          if (`${course.id}_${task.id}` === t.id) {
+            if (task.completedDates && task.completedDates[key]) {
+              done++;
+            }
+            break;
+          }
+        }
+      }
+    } else {
+      // Check regular task completion
+      if ((completions[key] || {})[t.id]) {
+        done++;
+      }
+    }
+  });
+  
+  return tasks.length ? Math.round(done / tasks.length * 100) : null;
 }
 function toggleTask(key, id) {
   if (!completions[key]) completions[key] = {};
@@ -179,40 +182,106 @@ document.getElementById('new-task-input').addEventListener('keydown', e => { if 
 
 function renderCalendar() {
   const grid = document.getElementById('cal-grid');
-  Array.from(grid.querySelectorAll('.day-cell, .empty-cell')).forEach(c => c.remove());
-  document.getElementById('month-lbl').textContent =
-    new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  // Clear existing cells (keep the day headers)
+  const existingCells = grid.querySelectorAll('.day-cell, .empty-cell');
+  existingCells.forEach(c => c.remove());
+  
+  const monthLabel = document.getElementById('month-lbl');
+  if (monthLabel) {
+    monthLabel.textContent = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+  
   const firstDow = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  
+  // Add empty cells for days before month starts
   for (let i = 0; i < firstDow; i++) {
-    const e = document.createElement('div'); e.className = 'day-cell empty'; grid.appendChild(e);
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'day-cell empty';
+    grid.appendChild(emptyCell);
   }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = dateKey(new Date(viewYear, viewMonth, d));
+  
+  // Add actual days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = dateKey(new Date(viewYear, viewMonth, day));
     const pct = getPct(key);
     const cell = document.createElement('div');
+    
     let cls = 'day-cell';
     if (key === todayKey) cls += ' today';
     if (key === selKey) cls += ' selected';
     cell.className = cls;
-    const numEl = document.createElement('div'); numEl.className = 'day-num'; numEl.textContent = d; cell.appendChild(numEl);
+    
+    const numEl = document.createElement('div');
+    numEl.className = 'day-num';
+    numEl.textContent = day;
+    cell.appendChild(numEl);
+    
     if (pct !== null) {
       const z = getZone(pct);
-      const dot = document.createElement('div'); dot.className = 'day-dot'; dot.style.background = z.bar; cell.appendChild(dot);
-      const pctEl = document.createElement('div'); pctEl.className = 'day-pct'; pctEl.textContent = pct + '%'; pctEl.style.color = z.txt; cell.appendChild(pctEl);
+      const dot = document.createElement('div');
+      dot.className = 'day-dot';
+      dot.style.background = z.bar;
+      cell.appendChild(dot);
+      
+      const pctEl = document.createElement('div');
+      pctEl.className = 'day-pct';
+      pctEl.textContent = pct + '%';
+      pctEl.style.color = z.txt;
+      cell.appendChild(pctEl);
+      
       if (key === selKey) cell.style.borderColor = z.bar;
     }
-    cell.addEventListener('click', () => { selKey = key; renderAll(); });
+    
+    // Add mood emoji if exists
+    if (moodRatings && moodRatings[key]) {
+      const moodDiv = document.createElement('div');
+      moodDiv.className = 'day-mood';
+      moodDiv.innerHTML = `<span class="day-mood-emoji">${getMoodEmoji(moodRatings[key])}</span>`;
+      cell.appendChild(moodDiv);
+    }
+    
+    cell.addEventListener('click', (function(k) {
+      return function() { 
+        selKey = k; 
+        renderAll(); 
+      };
+    })(key));
+    
     grid.appendChild(cell);
   }
 }
 
 function renderDayPanel() {
   const tasks = getTasksForKey(selKey);
-  const done = tasks.filter(t => (completions[selKey] || {})[t.id]).length;
+  
+  // Calculate done count properly for both regular and course tasks
+  let done = 0;
+  tasks.forEach(t => {
+    if (t.isCourseTask) {
+      // For course tasks, check the actual task's completion status
+      for (const course of courses) {
+        for (const task of course.tasks) {
+          if (`${course.id}_${task.id}` === t.id) {
+            if (task.completedDates && task.completedDates[selKey]) {
+              done++;
+            }
+            break;
+          }
+        }
+      }
+    } else {
+      // For regular tasks
+      if ((completions[selKey] || {})[t.id]) {
+        done++;
+      }
+    }
+  });
+  
   const total = tasks.length;
   const pct = total ? Math.round(done / total * 100) : 0;
   const z = getZone(total ? pct : 0);
+  
   document.getElementById('sel-date-lbl').textContent = formatDate(selKey);
   document.getElementById('sel-sub').textContent = total ? done + ' of ' + total + ' tasks done' : 'no tasks yet';
   const badge = document.getElementById('pct-num');
@@ -224,29 +293,82 @@ function renderDayPanel() {
   const pill = document.getElementById('streak-pill');
   if (streak > 0) { pill.textContent = streak + ' day streak'; pill.classList.add('active'); }
   else { pill.textContent = 'no streak'; pill.classList.remove('active'); }
-  const list = document.getElementById('task-list'); list.innerHTML = '';
+  
+  const list = document.getElementById('task-list'); 
+  list.innerHTML = '';
+  
   if (!tasks.length) {
-    const e = document.createElement('div'); e.className = 'empty-state'; e.textContent = 'nothing here yet — add a task below'; list.appendChild(e); return;
+    const e = document.createElement('div'); 
+    e.className = 'empty-state'; 
+    e.textContent = 'nothing here yet — add a task below'; 
+    list.appendChild(e); 
+    return;
   }
+  
   tasks.forEach(t => {
-    const isDone = !!(completions[selKey] || {})[t.id];
-    const el = document.createElement('div'); el.className = 'task' + (isDone ? ' done' : '');
-    const circ = document.createElement('div'); circ.className = 'task-circ';
-    if (isDone) { circ.style.background = z.bar; circ.style.borderColor = z.bar; }
-    const ck = document.createElement('div'); ck.className = 'task-check'; circ.appendChild(ck);
-    const lbl = document.createElement('span'); lbl.className = 't-lbl'; lbl.textContent = t.label;
-    const del = document.createElement('button'); del.className = 'del-btn'; del.innerHTML = '&#10005;';
-    del.addEventListener('click', e => { e.stopPropagation(); deleteTask(t.id, t.recurring); });
+    // Determine if the task is done
+    let isDone = false;
+    if (t.isCourseTask) {
+      for (const course of courses) {
+        for (const task of course.tasks) {
+          if (`${course.id}_${task.id}` === t.id) {
+            isDone = task.completedDates && task.completedDates[selKey];
+            break;
+          }
+        }
+      }
+    } else {
+      isDone = !!(completions[selKey] || {})[t.id];
+    }
+    
+    const el = document.createElement('div'); 
+    el.className = 'task' + (isDone ? ' done' : '');
+    const circ = document.createElement('div'); 
+    circ.className = 'task-circ';
+    if (isDone) { 
+      circ.style.background = z.bar; 
+      circ.style.borderColor = z.bar; 
+    }
+    const ck = document.createElement('div'); 
+    ck.className = 'task-check'; 
+    circ.appendChild(ck);
+    const lbl = document.createElement('span'); 
+    lbl.className = 't-lbl'; 
+    lbl.textContent = t.label;
+    const del = document.createElement('button'); 
+    del.className = 'del-btn'; 
+    del.innerHTML = '&#10005;';
+    del.addEventListener('click', e => { 
+      e.stopPropagation(); 
+      deleteTask(t.id, t.recurring); 
+    });
     const toggle = () => toggleTask(selKey, t.id);
-    circ.addEventListener('click', toggle); lbl.addEventListener('click', toggle);
-    el.appendChild(circ); el.appendChild(lbl);
-    if (t.recurring) { const tag = document.createElement('span'); tag.className = 'rec-tag'; tag.textContent = 'recurring'; el.appendChild(tag); }
-    el.appendChild(del); list.appendChild(el);
+    circ.addEventListener('click', toggle); 
+    lbl.addEventListener('click', toggle);
+    el.appendChild(circ); 
+    el.appendChild(lbl);
+    
+    if (t.recurring) { 
+      const tag = document.createElement('span'); 
+      tag.className = 'rec-tag'; 
+      tag.textContent = 'recurring'; 
+      el.appendChild(tag); 
+    }
+    if (t.isCourseTask) {
+      const tag = document.createElement('span'); 
+      tag.className = 'rec-tag'; 
+      tag.textContent = 'course'; 
+      el.appendChild(tag);
+    }
+    el.appendChild(del); 
+    list.appendChild(el);
   });
 }
 
 function renderAll() {
-  save(); renderCalendar(); renderDayPanel();
+  save(); 
+  renderCalendar(); 
+  renderDayPanel();
 }
 
 document.getElementById('prev-btn').addEventListener('click', () => {
@@ -1274,7 +1396,7 @@ toggleTask = function(key, id) {
   if (!isCourseTask) {
     originalToggleTask(key, id);
   }
-  renderAll();
+  renderAll();  // This will refresh the calendar and day panel
 };
 
 // ── HAPPINESS FUNCTIONS ───────────────────────────────
@@ -1433,55 +1555,7 @@ function initHappinessTab() {
   }
 }
 
-// Update the calendar to show mood emojis
-const originalRenderCalendar = renderCalendar;
-renderCalendar = function() {
-  originalRenderCalendar();
   
-  // Add mood indicators to calendar cells
-  const grid = document.getElementById('cal-grid');
-  const cells = grid.querySelectorAll('.day-cell:not(.empty)');
-  
-  cells.forEach(cell => {
-    const dayNum = cell.querySelector('.day-num')?.textContent;
-    if (dayNum) {
-      const key = dateKey(new Date(viewYear, viewMonth, parseInt(dayNum)));
-      const mood = moodRatings[key];
-      
-      if (mood) {
-        // Remove existing mood indicator if any
-        const existingMood = cell.querySelector('.day-mood');
-        if (existingMood) existingMood.remove();
-        
-        // Add mood emoji
-        const moodDiv = document.createElement('div');
-        moodDiv.className = 'day-mood';
-        moodDiv.innerHTML = `<span class="day-mood-emoji">${getMoodEmoji(mood)}</span>`;
-        cell.appendChild(moodDiv);
-      }
-    }
-  });
-};
-
-// Update deleteTask to handle course tasks
-const originalDeleteTask = deleteTask;
-deleteTask = function(id, isRecurring) {
-  // Check if it's a course task
-  let found = false;
-  Object.keys(courseTasks).forEach(key => {
-    const index = courseTasks[key].findIndex(t => t.id === id);
-    if (index !== -1) {
-      courseTasks[key].splice(index, 1);
-      found = true;
-    }
-  });
-  
-  if (!found) {
-    originalDeleteTask(id, isRecurring);
-  }
-  renderAll();
-  renderTodayCourseTasks();
-};
 
 // Update tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
