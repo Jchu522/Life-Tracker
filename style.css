@@ -444,6 +444,255 @@ body { display: flex; justify-content: center; padding: 0 0 40px; }
   color: var(--text-dim);
 }
 
+/* Updated Courses Tab */
+.add-course-btn {
+  background: var(--teal);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+}
+
+.course-card-expanded {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.course-header:hover {
+  background: var(--border);
+}
+
+.course-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.course-stats {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+
+.course-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.course-actions button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.course-actions button:hover {
+  color: var(--red);
+}
+
+.course-tasks-container {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.course-task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.course-task-label {
+  flex: 1;
+  font-size: 13px;
+}
+
+.course-task-recurrence {
+  font-size: 10px;
+  color: var(--teal);
+  font-family: 'DM Mono', monospace;
+  margin-left: 8px;
+}
+
+.delete-task-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-task-btn:hover {
+  color: var(--red);
+}
+
+.add-course-task-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.add-course-task-row input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-med);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border-med);
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.modal-input-small {
+  flex: 1;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-med);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.modal-tasks-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.modal-task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.modal-task-info {
+  flex: 1;
+}
+
+.modal-task-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.modal-task-recurrence {
+  font-size: 10px;
+  color: var(--teal);
+}
+
+.remove-modal-task {
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.recurrence-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.recurrence-select-dropdown {
+  padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border-med);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.weekly-days, .specific-date {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.weekly-days label {
+  margin-right: 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.add-small-btn {
+  padding: 6px 12px;
+  background: var(--teal);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.add-task-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
 /* ── HAPPINESS TAB ── */
 .happiness-container {
   padding: 0 12px;

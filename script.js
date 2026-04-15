@@ -804,15 +804,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 // ── COURSES STATE ─────────────────────────────────────
-let courses = []; // { id, name, taskTemplate }
-let courseTasks = {}; // key -> [{ id, courseId, label, done }]
+let courses = []; // { id, name, tasks: [{ id, name, recurrence: 'daily'/'weekly'/'once', days: [], specificDate, completedDates: {} }] }
+let expandedCourses = new Set(); // Track which courses are expanded
 
 // ── HAPPINESS STATE ───────────────────────────────────
 let moodRatings = {}; // key -> rating (1-10)
 let selectedHappinessDate = todayKey; // Currently selected date in happiness tab
 
 
-// Update load function to include new data
+// Update load function to include new data (NO courseTasks)
 const originalLoad = load;
 load = function() {
   originalLoad();
@@ -821,13 +821,12 @@ load = function() {
     if (raw) {
       const data = JSON.parse(raw);
       courses = data.courses || [];
-      courseTasks = data.courseTasks || {};
       moodRatings = data.moodRatings || {};
     }
   } catch(e) { console.warn('load error', e); }
 }
 
-// Update save function to include new data
+// Update save function to include new data (NO courseTasks)
 const originalSave = save;
 save = function() {
   originalSave();
@@ -835,74 +834,273 @@ save = function() {
     localStorage.setItem('trackerData', JSON.stringify({
       recurringTasks, oneTasks, completions,
       gymExercises, gymOneEx, gymLogs,
-      courses, courseTasks, moodRatings
+      courses, moodRatings
     }));
   } catch(e) { console.warn('save error', e); }
 }
 
 // ── COURSES FUNCTIONS ─────────────────────────────────
-function addCourse() {
-  const nameInput = document.getElementById('new-course-input');
-  const taskInput = document.getElementById('course-task-input');
-  const name = nameInput.value.trim();
-  const taskTemplate = taskInput.value.trim();
+function openCourseModal(courseId = null) {
+  const modal = document.getElementById('course-modal');
+  const title = document.getElementById('course-modal-title');
+  const nameInput = document.getElementById('modal-course-name');
+  const tasksContainer = document.getElementById('modal-tasks-list');
   
-  if (!name) return;
-  
-  courses.push({
-    id: 'c' + Date.now(),
-    name: name,
-    taskTemplate: taskTemplate || 'Study for'
-  });
-  
+  // Reset form
   nameInput.value = '';
-  taskInput.value = '';
+  tasksContainer.innerHTML = '';
+  
+  // Store temporary tasks
+  window.tempTasks = [];
+  
+  if (courseId) {
+    // Edit mode
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      title.textContent = `Edit Course: ${course.name}`;
+      nameInput.value = course.name;
+      window.tempTasks = [...course.tasks];
+      renderModalTasks();
+    }
+  } else {
+    title.textContent = 'Add New Course';
+  }
+  
+  modal.style.display = 'flex';
+}
+
+function renderModalTasks() {
+  const container = document.getElementById('modal-tasks-list');
+  if (!container) return;
+  
+  if (window.tempTasks.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding: 20px;">No tasks yet — add one below</div>';
+    return;
+  }
+  
+  container.innerHTML = window.tempTasks.map((task, idx) => {
+    let recurrenceText = '';
+    if (task.recurrence === 'daily') recurrenceText = '🔄 Daily';
+    else if (task.recurrence === 'weekly') recurrenceText = `📅 Weekly (${task.days.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(', ')})`;
+    else if (task.recurrence === 'once') recurrenceText = `📌 Once on ${task.specificDate}`;
+    
+    return `
+      <div class="modal-task-item">
+        <div class="modal-task-info">
+          <div class="modal-task-name">${escapeHtml(task.name)}</div>
+          <div class="modal-task-recurrence">${recurrenceText}</div>
+        </div>
+        <button class="remove-modal-task" data-index="${idx}">✕</button>
+      </div>
+    `;
+  }).join('');
+  
+  document.querySelectorAll('.remove-modal-task').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.index);
+      window.tempTasks.splice(idx, 1);
+      renderModalTasks();
+    });
+  });
+}
+
+function addTaskToModal() {
+  const taskName = document.getElementById('new-task-name')?.value.trim();
+  const recurrence = document.getElementById('task-recurrence')?.value;
+  
+  if (!taskName) {
+    alert('Please enter a task name');
+    return;
+  }
+  
+  const newTask = {
+    id: 't' + Date.now() + Math.random(),
+    name: taskName,
+    recurrence: recurrence,
+    completedDates: {}
+  };
+  
+  if (recurrence === 'weekly') {
+    const selectedDays = [];
+    document.querySelectorAll('#weekly-days-select input:checked').forEach(cb => {
+      selectedDays.push(parseInt(cb.value));
+    });
+    if (selectedDays.length === 0) {
+      alert('Please select at least one day for weekly recurrence');
+      return;
+    }
+    newTask.days = selectedDays;
+  } else if (recurrence === 'once') {
+    const specificDate = document.getElementById('task-specific-date')?.value;
+    if (!specificDate) {
+      alert('Please select a date for this task');
+      return;
+    }
+    newTask.specificDate = specificDate;
+  }
+  
+  window.tempTasks.push(newTask);
+  
+  // Clear inputs
+  document.getElementById('new-task-name').value = '';
+  document.getElementById('task-recurrence').value = 'none';
+  document.getElementById('weekly-days-select').style.display = 'none';
+  document.getElementById('specific-date-select').style.display = 'none';
+  document.querySelectorAll('#weekly-days-select input').forEach(cb => cb.checked = false);
+  document.getElementById('task-specific-date').value = '';
+  
+  renderModalTasks();
+}
+
+function saveCourse() {
+  const courseName = document.getElementById('modal-course-name')?.value.trim();
+  if (!courseName) {
+    alert('Please enter a course name');
+    return;
+  }
+  
+  if (window.tempTasks.length === 0) {
+    alert('Please add at least one task to the course');
+    return;
+  }
+  
+  // Check if editing existing course
+  const modalTitle = document.getElementById('course-modal-title')?.textContent;
+  const isEditing = modalTitle.includes('Edit');
+  
+  if (isEditing) {
+    // Find and update existing course
+    const courseId = window.editingCourseId;
+    const index = courses.findIndex(c => c.id === courseId);
+    if (index !== -1) {
+      courses[index] = {
+        ...courses[index],
+        name: courseName,
+        tasks: window.tempTasks
+      };
+    }
+  } else {
+    // Add new course
+    courses.push({
+      id: 'c' + Date.now(),
+      name: courseName,
+      tasks: window.tempTasks,
+      expanded: false
+    });
+  }
+  
+  closeCourseModal();
   renderCourses();
   save();
 }
 
+function closeCourseModal() {
+  document.getElementById('course-modal').style.display = 'none';
+  window.tempTasks = [];
+  window.editingCourseId = null;
+}
+
 function deleteCourse(courseId) {
-  if (confirm('Remove this course? This will also remove all related tasks.')) {
+  if (confirm('Are you sure you want to delete this course and all its tasks?')) {
     courses = courses.filter(c => c.id !== courseId);
-    // Remove related tasks
-    Object.keys(courseTasks).forEach(key => {
-      courseTasks[key] = courseTasks[key].filter(t => t.courseId !== courseId);
-    });
     renderCourses();
-    renderTodayCourseTasks();
     save();
   }
 }
 
-function toggleCourseTask(key, taskId) {
-  if (!courseTasks[key]) courseTasks[key] = [];
-  const task = courseTasks[key].find(t => t.id === taskId);
-  if (task) {
-    task.done = !task.done;
+function toggleCourseExpand(courseId) {
+  if (expandedCourses.has(courseId)) {
+    expandedCourses.delete(courseId);
+  } else {
+    expandedCourses.add(courseId);
+  }
+  renderCourses();
+}
+
+function deleteTaskFromCourse(courseId, taskId) {
+  const course = courses.find(c => c.id === courseId);
+  if (course) {
+    course.tasks = course.tasks.filter(t => t.id !== taskId);
+    renderCourses();
     save();
-    renderTodayCourseTasks();
-    renderAll(); // Update tracker tab if it shows course tasks
   }
 }
 
-function generateCourseTasksForDay(key) {
-  const date = keyToDate(key);
-  const todayKey = dateKey(date);
+function addTaskToCourse(courseId) {
+  const course = courses.find(c => c.id === courseId);
+  if (!course) return;
+  
+  const taskName = prompt('Enter task name:');
+  if (!taskName) return;
+  
+  const recurrence = prompt('Recurrence (daily/weekly/once):', 'daily');
+  
+  const newTask = {
+    id: 't' + Date.now() + Math.random(),
+    name: taskName,
+    recurrence: recurrence,
+    completedDates: {}
+  };
+  
+  if (recurrence === 'weekly') {
+    const days = prompt('Days (0-6, comma separated, 0=Sunday):', '1,2,3,4,5');
+    newTask.days = days.split(',').map(Number);
+  } else if (recurrence === 'once') {
+    const specificDate = prompt('Date (YYYY-MM-DD):', dateKey(new Date()));
+    newTask.specificDate = specificDate;
+  }
+  
+  course.tasks.push(newTask);
+  renderCourses();
+  save();
+}
+
+function toggleCourseTask(courseId, taskId, dateKey) {
+  const course = courses.find(c => c.id === courseId);
+  if (!course) return;
+  
+  const task = course.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  if (!task.completedDates) task.completedDates = {};
+  task.completedDates[dateKey] = !task.completedDates[dateKey];
+  
+  save();
+  renderCourses();
+  renderAll(); // Update tracker tab
+}
+
+function getTasksForDateFromCourses(dateKey) {
+  const date = keyToDate(dateKey);
+  const dayOfWeek = date.getDay();
+  const tasks = [];
   
   courses.forEach(course => {
-    if (!courseTasks[todayKey]) courseTasks[todayKey] = [];
-    
-    const existingTask = courseTasks[todayKey].find(t => t.courseId === course.id);
-    if (!existingTask) {
-      courseTasks[todayKey].push({
-        id: 'ct' + Date.now() + Math.random(),
-        courseId: course.id,
-        label: `${course.taskTemplate} ${course.name}`,
-        done: false
-      });
-    }
+    course.tasks.forEach(task => {
+      let shouldInclude = false;
+      
+      if (task.recurrence === 'daily') {
+        shouldInclude = true;
+      } else if (task.recurrence === 'weekly' && task.days) {
+        shouldInclude = task.days.includes(dayOfWeek);
+      } else if (task.recurrence === 'once' && task.specificDate) {
+        shouldInclude = task.specificDate === dateKey;
+      }
+      
+      if (shouldInclude) {
+        const isCompleted = task.completedDates && task.completedDates[dateKey];
+        tasks.push({
+          id: `${course.id}_${task.id}`,
+          label: `${task.name} (${course.name})`,
+          courseId: course.id,
+          taskId: task.id,
+          completed: isCompleted
+        });
+      }
+    });
   });
-  save();
+  
+  return tasks;
 }
 
 function renderCourses() {
@@ -910,54 +1108,174 @@ function renderCourses() {
   if (!container) return;
   
   if (courses.length === 0) {
-    container.innerHTML = '<div class="empty-state">No courses yet — add one above</div>';
+    container.innerHTML = '<div class="empty-state">No courses yet — click "+ New Course" to add one</div>';
     return;
   }
   
-  container.innerHTML = courses.map(course => `
-    <div class="course-card">
-      <div class="course-info">
-        <div class="course-name">${escapeHtml(course.name)}</div>
-        <div class="course-task-template">Task: ${escapeHtml(course.taskTemplate)} [course]</div>
+  container.innerHTML = courses.map(course => {
+    const isExpanded = expandedCourses.has(course.id);
+    const totalTasks = course.tasks.length;
+    let completedToday = 0;
+    
+    course.tasks.forEach(task => {
+      if (task.completedDates && task.completedDates[todayKey]) {
+        completedToday++;
+      }
+    });
+    
+    return `
+      <div class="course-card-expanded">
+        <div class="course-header" data-course-id="${course.id}">
+          <div>
+            <div class="course-name">${escapeHtml(course.name)}</div>
+            <div class="course-stats">${completedToday}/${totalTasks} tasks done today</div>
+          </div>
+          <div class="course-actions">
+            <button class="edit-course-btn" data-id="${course.id}">✎</button>
+            <button class="delete-course-btn" data-id="${course.id}">🗑</button>
+            <button class="expand-course-btn">${isExpanded ? '▲' : '▼'}</button>
+          </div>
+        </div>
+        ${isExpanded ? `
+          <div class="course-tasks-container">
+            ${course.tasks.map(task => {
+              const isDone = task.completedDates && task.completedDates[todayKey];
+              let recurrenceText = '';
+              if (task.recurrence === 'daily') recurrenceText = '🔄 Daily';
+              else if (task.recurrence === 'weekly') recurrenceText = `📅 Weekly`;
+              else if (task.recurrence === 'once') recurrenceText = `📌 Once`;
+              
+              return `
+                <div class="course-task-item">
+                  <div class="task-circ ${isDone ? 'done' : ''}" data-course="${course.id}" data-task="${task.id}"></div>
+                  <span class="course-task-label" style="${isDone ? 'text-decoration: line-through; color: var(--text-dim);' : ''}">
+                    ${escapeHtml(task.name)}
+                    <span class="course-task-recurrence">${recurrenceText}</span>
+                  </span>
+                  <button class="delete-task-btn" data-course="${course.id}" data-task="${task.id}">✕</button>
+                </div>
+              `;
+            }).join('')}
+            <div class="add-course-task-row">
+              <input type="text" id="new-task-${course.id}" placeholder="New task name..." />
+              <button class="add-small-btn" data-course="${course.id}">+ Add Task</button>
+            </div>
+          </div>
+        ` : ''}
       </div>
-      <button class="delete-course-btn" data-id="${course.id}">✕</button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   
-  // Add delete event listeners
-  document.querySelectorAll('.delete-course-btn').forEach(btn => {
-    btn.addEventListener('click', () => deleteCourse(btn.dataset.id));
+  // Add event listeners
+  document.querySelectorAll('.course-header').forEach(header => {
+    const courseId = header.dataset.courseId;
+    header.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('edit-course-btn') && !e.target.classList.contains('delete-course-btn')) {
+        toggleCourseExpand(courseId);
+      }
+    });
   });
-}
-
-function renderTodayCourseTasks() {
-  const container = document.getElementById('today-course-tasks');
-  if (!container) return;
   
-  generateCourseTasksForDay(todayKey);
-  const tasks = courseTasks[todayKey] || [];
+  document.querySelectorAll('.edit-course-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const courseId = btn.dataset.id;
+      window.editingCourseId = courseId;
+      openCourseModal(courseId);
+    });
+  });
   
-  if (tasks.length === 0) {
-    container.innerHTML = '<div class="empty-state">No course tasks for today — add a course above</div>';
-    return;
-  }
+  document.querySelectorAll('.delete-course-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteCourse(btn.dataset.id);
+    });
+  });
   
-  container.innerHTML = tasks.map(task => `
-    <div class="course-task-item" data-id="${task.id}">
-      <div class="task-circ ${task.done ? 'done' : ''}" data-id="${task.id}"></div>
-      <span class="course-task-label ${task.done ? 'course-task-done' : ''}">${escapeHtml(task.label)}</span>
-    </div>
-  `).join('');
+  document.querySelectorAll('.task-circ').forEach(circ => {
+    circ.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const courseId = circ.dataset.course;
+      const taskId = circ.dataset.task;
+      toggleCourseTask(courseId, taskId, todayKey);
+    });
+  });
   
-  // Add click handlers
-  document.querySelectorAll('#today-course-tasks .task-circ').forEach(circ => {
-    circ.addEventListener('click', () => {
-      const taskId = circ.dataset.id;
-      toggleCourseTask(todayKey, taskId);
+  document.querySelectorAll('.delete-task-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTaskFromCourse(btn.dataset.course, btn.dataset.task);
+    });
+  });
+  
+  document.querySelectorAll('.add-small-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const courseId = btn.dataset.course;
+      const input = document.getElementById(`new-task-${courseId}`);
+      const taskName = input?.value.trim();
+      if (taskName) {
+        const course = courses.find(c => c.id === courseId);
+        if (course) {
+          course.tasks.push({
+            id: 't' + Date.now() + Math.random(),
+            name: taskName,
+            recurrence: 'daily',
+            completedDates: {}
+          });
+          input.value = '';
+          renderCourses();
+          save();
+        }
+      }
     });
   });
 }
 
+// Update getTasksForKey to include course tasks
+const originalGetTasksForKey = getTasksForKey;
+getTasksForKey = function(key) {
+  const tasks = originalGetTasksForKey(key);
+  const courseTasks = getTasksForDateFromCourses(key);
+  
+  const courseTaskItems = courseTasks.map(ct => ({
+    id: ct.id,
+    label: ct.label,
+    recurring: false,
+    isCourseTask: true,
+    courseId: ct.courseId,
+    taskId: ct.taskId,
+    completed: ct.completed
+  }));
+  
+  return [...tasks, ...courseTaskItems];
+};
+
+// Update toggleTask to handle course tasks
+const originalToggleTask = toggleTask;
+toggleTask = function(key, id) {
+  // Check if it's a course task
+  let isCourseTask = false;
+  for (const course of courses) {
+    for (const task of course.tasks) {
+      const taskId = `${course.id}_${task.id}`;
+      if (taskId === id) {
+        if (!task.completedDates) task.completedDates = {};
+        task.completedDates[key] = !task.completedDates[key];
+        isCourseTask = true;
+        save();
+        renderCourses();
+        break;
+      }
+    }
+    if (isCourseTask) break;
+  }
+  
+  if (!isCourseTask) {
+    originalToggleTask(key, id);
+  }
+  renderAll();
+};
 
 // ── HAPPINESS FUNCTIONS ───────────────────────────────
 function setMoodRating(rating, dateKey = null) {
@@ -1145,41 +1463,6 @@ renderCalendar = function() {
   });
 };
 
-// Add course tasks to tracker display
-const originalGetTasksForKey = getTasksForKey;
-getTasksForKey = function(key) {
-  const tasks = originalGetTasksForKey(key);
-  // Add course tasks for this day
-  const courseTasksForDay = (courseTasks[key] || []).filter(t => !t.done).map(t => ({
-    id: t.id,
-    label: t.label,
-    recurring: false,
-    isCourseTask: true
-  }));
-  return [...tasks, ...courseTasksForDay];
-};
-
-// Update toggleTask to handle course tasks
-const originalToggleTask = toggleTask;
-toggleTask = function(key, id) {
-  // Check if it's a course task
-  let isCourseTask = false;
-  if (courseTasks[key]) {
-    const task = courseTasks[key].find(t => t.id === id);
-    if (task) {
-      task.done = !task.done;
-      save();
-      renderTodayCourseTasks();
-      isCourseTask = true;
-    }
-  }
-  
-  if (!isCourseTask) {
-    originalToggleTask(key, id);
-  }
-  renderAll();
-};
-
 // Update deleteTask to handle course tasks
 const originalDeleteTask = deleteTask;
 deleteTask = function(id, isRecurring) {
@@ -1217,7 +1500,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       populateExerciseSelect();
     } else if (activeTab === 'courses') {
       renderCourses();
-      renderTodayCourseTasks();
     } else if (activeTab === 'happiness') {
       initHappinessTab(); 
     } else {
@@ -1226,12 +1508,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-
-// Initialize courses button
-document.getElementById('add-course-btn')?.addEventListener('click', addCourse);
-document.getElementById('new-course-input')?.addEventListener('keydown', e => {
-  if (e.key === 'Enter') addCourse();
-});
 
 // ── DATA EXPORT/IMPORT ─────────────────────────────────
 
@@ -1386,7 +1662,29 @@ function initBackupFeatures() {
 // ── INITIAL DATA LOAD ─────────────────────────────────
 function initializeApp() {
   load();
+  // Initialize Course Modal buttons
+document.getElementById('add-course-main-btn')?.addEventListener('click', () => openCourseModal());
+document.getElementById('close-course-modal')?.addEventListener('click', closeCourseModal);
+document.getElementById('cancel-course-modal')?.addEventListener('click', closeCourseModal);
+document.getElementById('save-course-btn')?.addEventListener('click', saveCourse);
+document.getElementById('add-task-to-course')?.addEventListener('click', addTaskToModal);
 
+// Recurrence dropdown handler
+document.getElementById('task-recurrence')?.addEventListener('change', (e) => {
+  const weeklyDiv = document.getElementById('weekly-days-select');
+  const specificDiv = document.getElementById('specific-date-select');
+  
+  if (e.target.value === 'weekly') {
+    weeklyDiv.style.display = 'flex';
+    specificDiv.style.display = 'none';
+  } else if (e.target.value === 'once') {
+    weeklyDiv.style.display = 'none';
+    specificDiv.style.display = 'block';
+  } else {
+    weeklyDiv.style.display = 'none';
+    specificDiv.style.display = 'none';
+  }
+});
   if (recurringTasks.length === 0 || gymExercises.length === 0) {
     if (recurringTasks.length === 0) {
       recurringTasks = [

@@ -204,26 +204,60 @@
 <!-- COURSES TAB -->
 <div class="tab-content hidden" id="tab-courses">
   <div class="courses-container">
+    <!-- Add Course Section -->
     <div class="courses-section">
       <div class="section-header">
         <h3>📚 My Courses</h3>
-      </div>
-      <div class="add-course-row">
-        <input id="new-course-input" placeholder="Course name..." autocomplete="off" />
-        <input id="course-task-input" placeholder="Default task name (e.g., 'Study for')..." autocomplete="off" />
-        <button class="add-btn" id="add-course-btn">Add Course</button>
+        <button id="add-course-main-btn" class="add-course-btn">+ New Course</button>
       </div>
       <div id="courses-list" class="courses-list">
-        <div class="empty-state">No courses yet — add one above</div>
+        <div class="empty-state">No courses yet — click "+ New Course" to add one</div>
       </div>
     </div>
-    <div class="courses-section">
-      <div class="section-header">
-        <h3>📖 Today's Course Tasks</h3>
+  </div>
+</div>
+
+<!-- Add Course Modal (hidden by default) -->
+<div id="course-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="course-modal-title">Add New Course</h3>
+      <button class="modal-close" id="close-course-modal">&times;</button>
+    </div>
+    <div class="course-modal-body">
+      <input type="text" id="modal-course-name" placeholder="Course name" class="modal-input" />
+      <div class="course-tasks-section">
+        <h4>Tasks for this course</h4>
+        <div id="modal-tasks-list" class="modal-tasks-list"></div>
+        <div class="add-task-row">
+          <input type="text" id="new-task-name" placeholder="Task name (e.g., 'Homework', 'Study')" class="modal-input-small" />
+          <div class="recurrence-select">
+            <span>Repeat:</span>
+            <select id="task-recurrence" class="recurrence-select-dropdown">
+              <option value="none">Once (specific date)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly (select days)</option>
+            </select>
+          </div>
+          <div id="weekly-days-select" class="weekly-days" style="display: none;">
+            <label><input type="checkbox" value="0"> Su</label>
+            <label><input type="checkbox" value="1"> Mo</label>
+            <label><input type="checkbox" value="2"> Tu</label>
+            <label><input type="checkbox" value="3"> We</label>
+            <label><input type="checkbox" value="4"> Th</label>
+            <label><input type="checkbox" value="5"> Fr</label>
+            <label><input type="checkbox" value="6"> Sa</label>
+          </div>
+          <div id="specific-date-select" class="specific-date" style="display: none;">
+            <input type="date" id="task-specific-date" />
+          </div>
+          <button id="add-task-to-course" class="add-small-btn">+ Add Task</button>
+        </div>
       </div>
-      <div id="today-course-tasks" class="course-tasks-list">
-        <div class="empty-state">No course tasks for today — add a course above</div>
-      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="cancel-btn" id="cancel-course-modal">Cancel</button>
+      <button class="confirm-btn" id="save-course-btn">Save Course</button>
     </div>
   </div>
 </div>
