@@ -57,6 +57,73 @@
       </div>
       <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
       <div class="tasks" id="task-list"></div>
+      <!-- TRACKER TAB -->
+<div class="tab-content" id="tab-tracker">
+  <div class="nav">
+    <button class="nav-btn" id="prev-btn">&#8249;</button>
+    <span class="nav-title" id="month-lbl"></span>
+    <button class="nav-btn" id="next-btn">&#8250;</button>
+  </div>
+  <div class="cal-grid" id="cal-grid">
+    <div class="day-hdr">Su</div>
+    <div class="day-hdr">Mo</div>
+    <div class="day-hdr">Tu</div>
+    <div class="day-hdr">We</div>
+    <div class="day-hdr">Th</div>
+    <div class="day-hdr">Fr</div>
+    <div class="day-hdr">Sa</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="sel-date" id="sel-date-lbl"></div>
+        <div class="sel-sub" id="sel-sub"></div>
+      </div>
+      <div class="pct-block">
+        <div class="pct-num" id="pct-num">—</div>
+        <div class="pct-label">complete</div>
+      </div>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+    <div class="tasks" id="task-list"></div>
+    
+    <!-- NOTES SECTION - ADD THIS RIGHT HERE -->
+    <div class="notes-section">
+      <div class="notes-header">
+        <span class="notes-title">📝 Daily Notes</span>
+        <button id="edit-notes-btn" class="edit-notes-btn">Edit</button>
+      </div>
+      <div id="notes-display" class="notes-display">
+        <div class="notes-placeholder">No notes for this day. Click Edit to add notes.</div>
+      </div>
+      <textarea id="notes-editor" class="notes-editor hidden" placeholder="Write your notes here..."></textarea>
+      <div class="notes-actions hidden" id="notes-actions">
+        <button id="save-notes-btn" class="save-notes-btn">Save</button>
+        <button id="cancel-notes-btn" class="cancel-notes-btn">Cancel</button>
+      </div>
+    </div>
+    
+    <div class="add-section">
+      <div class="add-row">
+        <input id="new-task-input" placeholder="Add a task..." autocomplete="off" />
+        <button class="add-btn" id="add-task-btn">Add</button>
+      </div>
+      <div class="rec-row">
+        <span class="rec-lbl">Repeat on:</span>
+        <div class="day-toggles">
+          <button class="day-toggle" data-d="0">Su</button>
+          <button class="day-toggle" data-d="1">Mo</button>
+          <button class="day-toggle" data-d="2">Tu</button>
+          <button class="day-toggle" data-d="3">We</button>
+          <button class="day-toggle" data-d="4">Th</button>
+          <button class="day-toggle" data-d="5">Fr</button>
+          <button class="day-toggle" data-d="6">Sa</button>
+        </div>
+      </div>
+      <div class="rec-hint" id="rec-hint">No repeat days selected — task will be added to this day only</div>
+    </div>
+  </div>
+</div>
       <div class="add-section">
         <div class="add-row">
           <input id="new-task-input" placeholder="Add a task..." autocomplete="off" />

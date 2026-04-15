@@ -57,6 +57,8 @@ function load() {
     gymExercises   = data.gymExercises   || [];
     gymOneEx       = data.gymOneEx       || {};
     gymLogs        = data.gymLogs        || {};
+    courses        = data.courses        || [];
+    moodRatings    = data.moodRatings    || {};
   } catch(e) { console.warn('load error', e); }
 }
 
@@ -64,11 +66,11 @@ function save() {
   try {
     localStorage.setItem('trackerData', JSON.stringify({
       recurringTasks, oneTasks, completions,
-      gymExercises, gymOneEx, gymLogs
+      gymExercises, gymOneEx, gymLogs,
+      courses, moodRatings
     }));
   } catch(e) { console.warn('save error', e); }
 }
-
 
 // ══════════════════════════════════════════════════════
 // TRACKER (original logic, unchanged)
@@ -369,6 +371,7 @@ function renderAll() {
   save(); 
   renderCalendar(); 
   renderDayPanel();
+  renderNotes(); 
 }
 
 document.getElementById('prev-btn').addEventListener('click', () => {
@@ -1400,6 +1403,119 @@ toggleTask = function(key, id) {
   renderAll();  // This will refresh the calendar and day panel
 };
 
+// ── NOTES STATE ───────────────────────────────────────
+let dailyNotes = {}; // key -> note text
+
+// Add notes to load function
+const originalLoadNotes = load;
+load = function() {
+  originalLoadNotes();
+  try {
+    const raw = localStorage.getItem('trackerData');
+    if (raw) {
+      const data = JSON.parse(raw);
+      dailyNotes = data.dailyNotes || {};
+    }
+  } catch(e) { console.warn('load error', e); }
+}
+
+// Add notes to save function
+const originalSaveNotes = save;
+save = function() {
+  originalSaveNotes();
+  try {
+    localStorage.setItem('trackerData', JSON.stringify({
+      recurringTasks, oneTasks, completions,
+      gymExercises, gymOneEx, gymLogs,
+      courses, moodRatings, dailyNotes
+    }));
+  } catch(e) { console.warn('save error', e); }
+}
+
+// Notes functions
+function renderNotes() {
+  const note = dailyNotes[selKey] || '';
+  const displayDiv = document.getElementById('notes-display');
+  const editor = document.getElementById('notes-editor');
+  const actions = document.getElementById('notes-actions');
+  const editBtn = document.getElementById('edit-notes-btn');
+  
+  if (displayDiv) {
+    if (note) {
+      displayDiv.innerHTML = note.replace(/\n/g, '<br>');
+      displayDiv.classList.remove('notes-placeholder');
+    } else {
+      displayDiv.innerHTML = '<div class="notes-placeholder">No notes for this day. Click Edit to add notes.</div>';
+    }
+  }
+  
+  // Reset editor and hide edit mode
+  if (editor) {
+    editor.value = note;
+    editor.classList.add('hidden');
+  }
+  if (actions) actions.classList.add('hidden');
+  if (editBtn) editBtn.textContent = 'Edit';
+}
+
+function enableEditMode() {
+  const editor = document.getElementById('notes-editor');
+  const actions = document.getElementById('notes-actions');
+  const displayDiv = document.getElementById('notes-display');
+  const editBtn = document.getElementById('edit-notes-btn');
+  
+  if (editor) editor.classList.remove('hidden');
+  if (actions) actions.classList.remove('hidden');
+  if (displayDiv) displayDiv.classList.add('hidden');
+  if (editBtn) editBtn.textContent = 'Cancel Edit';
+}
+
+function cancelEdit() {
+  const editor = document.getElementById('notes-editor');
+  const actions = document.getElementById('notes-actions');
+  const displayDiv = document.getElementById('notes-display');
+  const editBtn = document.getElementById('edit-notes-btn');
+  
+  if (editor) editor.classList.add('hidden');
+  if (actions) actions.classList.add('hidden');
+  if (displayDiv) displayDiv.classList.remove('hidden');
+  if (editBtn) editBtn.textContent = 'Edit';
+}
+
+function saveNote() {
+  const editor = document.getElementById('notes-editor');
+  const noteText = editor ? editor.value.trim() : '';
+  
+  if (noteText) {
+    dailyNotes[selKey] = noteText;
+  } else {
+    // If note is empty, delete the entry
+    delete dailyNotes[selKey];
+  }
+  
+  save();
+  cancelEdit();
+  renderNotes();
+}
+
+// Add event listeners for notes
+document.getElementById('edit-notes-btn')?.addEventListener('click', () => {
+  const editBtn = document.getElementById('edit-notes-btn');
+  if (editBtn && editBtn.textContent === 'Edit') {
+    enableEditMode();
+  } else {
+    cancelEdit();
+  }
+});
+document.getElementById('save-notes-btn')?.addEventListener('click', saveNote);
+document.getElementById('cancel-notes-btn')?.addEventListener('click', cancelEdit);
+
+// Update renderAll to include notes
+const originalRenderAll = renderAll;
+renderAll = function() {
+  originalRenderAll();
+  renderNotes();
+};
 // ── HAPPINESS FUNCTIONS ───────────────────────────────
 function setMoodRating(rating, dateKey = null) {
   const targetDate = dateKey || selectedHappinessDate;
@@ -1596,10 +1712,13 @@ function exportData() {
     recurringTasks: recurringTasks,
     oneTasks: oneTasks,
     completions: completions,
+    dailyNotes: dailyNotes,
+
     // Gym data
     gymExercises: gymExercises,
     gymOneEx: gymOneEx,
     gymLogs: gymLogs,
+
     // Courses data
     courses: courses,
     // Happiness data
@@ -1639,6 +1758,7 @@ function importData(file) {
       if (importedData.moodRatings) summary.push(`${Object.keys(importedData.moodRatings).length} mood ratings`);
       if (importedData.gymExercises) summary.push(`${importedData.gymExercises.length} gym exercises`);
       
+      
       const confirmMsg = `This will replace ALL your current data with backup from ${importedData.timestamp ? new Date(importedData.timestamp).toLocaleString() : 'unknown date'}\n\nIncludes: ${summary.join(', ')}\n\nAre you sure you want to continue?`;
       
       if (confirm(confirmMsg)) {
@@ -1651,6 +1771,7 @@ function importData(file) {
         if (importedData.gymLogs) gymLogs = importedData.gymLogs;
         if (importedData.courses) courses = importedData.courses;
         if (importedData.moodRatings) moodRatings = importedData.moodRatings;
+        if (importedData.dailyNotes) dailyNotes = importedData.dailyNotes;
         
         save();
         renderAll();
