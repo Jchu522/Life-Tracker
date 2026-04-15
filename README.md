@@ -2,7 +2,7 @@
 
 A powerful all-in-one Progressive Web App for tracking daily tasks, workouts, courses, mood, and personal records. Built with vanilla HTML, CSS, and JavaScript.
 
-## ✨ Features
+## Features
 
 ### 📋 Task Tracker
 - **Recurring Tasks** - Set tasks to repeat on specific days of the week
