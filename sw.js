@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'tracker-v18';
+const CACHE_NAME = 'tracker-v19';
 const urlsToCache = [
   './',
   './index.html',
